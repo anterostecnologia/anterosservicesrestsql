@@ -34,7 +34,7 @@ public class UserRepositoryImpl extends GenericSQLRepository<User, Long> impleme
 
 		User singleResult = new OSQLQuery(getSession()).from(tUser).where(tUser.login.eq(pLogin)).set(pLogin, login).readOnly(true)
 				.singleResult(tUser.customProjection(tUser.id, tUser.email, tUser.boAdministrator,
-						tUser.boFreeAccessTime, tUser.name, tUser.description, tUser.avatar));
+						tUser.boFreeAccessTime, tUser.name, tUser.description, tUser.avatar, tUser._super.uuid));
 		
 		return singleResult;
 	}
