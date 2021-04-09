@@ -6,10 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.beans.factory.annotation.Qualifier;
 
+import br.com.anteros.security.store.sql.domain.TProfile;
 import br.com.anteros.security.store.sql.domain.TUser;
 import br.com.anteros.security.store.sql.domain.User;
 import br.com.anteros.commons.services.rest.repository.UserRepository;
 import br.com.anteros.persistence.dsl.osql.OSQLQuery;
+import br.com.anteros.persistence.dsl.osql.types.expr.BooleanExpression;
 import br.com.anteros.persistence.dsl.osql.types.expr.params.StringParam;
 import br.com.anteros.persistence.session.SQLSessionFactory;
 import br.com.anteros.persistence.session.repository.impl.GenericSQLRepository;
@@ -29,14 +31,30 @@ public class UserRepositoryImpl extends GenericSQLRepository<User, Long> impleme
 	@Override
 	public User getUserByLoginName(String login) {
 		StringParam pLogin = new StringParam("PLOGIN");
-
-		TUser tUser = new TUser("USU");
-
-		User singleResult = new OSQLQuery(getSession()).from(tUser).where(tUser.login.equalsIgnoreCase(pLogin)).set(pLogin, login).readOnly(true)
-				.singleResult(tUser.customProjection(tUser.id, tUser.email, tUser.boAdministrator,
-						tUser.boFreeAccessTime, tUser.name, tUser.description, tUser.avatar, tUser._super.uuid));
 		
-		return singleResult;
+		TUser tUser = new TUser("USU");
+		
+		BooleanExpression where = tUser.login.equalsIgnoreCase(pLogin);
+		if (getSession().getTenantId()!=null) {
+			where = where.and(tUser.owner.eq(getSession().getTenantId().toString()));
+		}
+
+		List<User> list = new OSQLQuery(getSession())
+				.from(tUser)
+				.where(where).set(pLogin, login).readOnly(true)
+				.list(tUser);
+		
+		if (list != null && list.size()>0) {
+			User user = list.get(0);
+			user.setPassword(null);
+			user.getSimpleActions().size();
+			if (user.getProfile() != null) {
+				user.getProfile().getSimpleActions().size();
+			}
+			return user;
+		}
+		
+		return null;
 	}
 
 
