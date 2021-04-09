@@ -7,24 +7,40 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.anteros.commons.services.rest.exception.UserException;
+import br.com.anteros.commons.services.rest.resource.v1.UserResource.PageUser;
 import br.com.anteros.commons.services.rest.service.UserService;
+import br.com.anteros.core.utils.Assert;
+import br.com.anteros.core.utils.StringUtils;
+import br.com.anteros.persistence.dsl.osql.BooleanBuilder;
+import br.com.anteros.persistence.metadata.EntityCache;
+import br.com.anteros.persistence.metadata.descriptor.DescriptionField;
+import br.com.anteros.persistence.session.exception.SQLSessionException;
+import br.com.anteros.persistence.session.query.SQLQueryException;
+import br.com.anteros.persistence.session.query.filter.AnterosFilterDsl;
+import br.com.anteros.persistence.session.query.filter.AnterosMultipleFieldsFilter;
+import br.com.anteros.persistence.session.query.filter.DefaultFilterBuilder;
+import br.com.anteros.persistence.session.query.filter.Filter;
 import br.com.anteros.persistence.session.repository.Page;
 import br.com.anteros.persistence.session.repository.PageRequest;
 import br.com.anteros.persistence.session.repository.Pageable;
 import br.com.anteros.persistence.session.repository.impl.PageImpl;
 import br.com.anteros.persistence.session.service.SQLService;
 import br.com.anteros.security.spring.AnterosSecurityManager;
+import br.com.anteros.security.spring.AnterosSecurityUser;
+import br.com.anteros.security.spring.util.AnterosSecurityUtil;
 import br.com.anteros.security.store.sql.domain.User;
 import br.com.anteros.spring.web.resource.AbstractSQLResourceRest;
 
@@ -74,8 +90,7 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 		public ListUser(Collection<? extends User> c) {
 			super(c);
 		}
-	}
-	
+	}	
 	
 	/**
 	 * Insere ou atualiza um objeto.
@@ -91,6 +106,10 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = false, transactionManager = "transactionManagerSQL")
 	@Override
 	public User save(@RequestBody User object) throws Exception {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
 		if (object.getId() == null && !this.existsUserByLoginName(object.getLogin())) {			
 			return super.save(object); 
 		}
@@ -103,6 +122,222 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 		
 	}
 	
+	/**
+	 * Remove um objeto pelo ID.
+	 * 
+	 * @param id Identificador do objeto
+	 * @return Objeto removido.
+	 * @throws Exception
+	 */
+	@RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = false, transactionManager = "transactionManagerSQL")
+	public User removeById(@PathVariable(value = "id") String id) throws Exception {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		return super.removeById(id);
+	}
+	
+	/**
+	 * Valida um objeto.
+	 * 
+	 * @param object Objeto a ser validado
+	 * @param groups Grupo de validação
+	 * @return Objeto validado
+	 * @throws Exception
+	 */
+
+	@RequestMapping(value = "/validateGroup", method = { RequestMethod.POST, RequestMethod.PUT })
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = false, transactionManager = "transactionManagerSQL")
+	public void validateGroup(@RequestBody User object, Class<?>... groups) throws Exception {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		super.validateGroup(object, groups);
+	}
+	
+	
+	/**
+	 * Valida um objeto.
+	 * 
+	 * @param object Objeto a ser validado
+	 * @return Objeto validado
+	 * @throws Exception
+	 */
+
+	@RequestMapping(value = "/validate", method = { RequestMethod.POST, RequestMethod.PUT })
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = false, transactionManager = "transactionManagerSQL")
+	public void validate(@RequestBody User object) throws Exception {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		super.validate(object);
+	}
+	
+	/**
+	 * Remove todos os objetos da classe.
+	 * 
+	 * @param ids Lista dos id's a serem removidos.
+	 * @return Verdadeiro se removeu todos.
+	 * @throws Exception
+	 */
+	@RequestMapping(value = "/", method = RequestMethod.DELETE)
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = false, transactionManager = "transactionManagerSQL")
+	public Boolean removeAll(@RequestParam(required = true) List<String> ids) throws Exception {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		return super.removeAll(ids);
+	}
+	
+	/**
+	 * Busca um objeto pelo seu ID.
+	 * 
+	 * @param id Identificador do objeto.
+	 * @return Objeto encontrado.
+	 * @throws Exception
+	 */
+	@RequestMapping(value = "/{id}", params = { "fieldsToForceLazy" }, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public User findOne(@PathVariable(value = "id") String id, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) throws Exception {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		return super.findOne(id, fieldsToForceLazy);
+	}
+	
+	/**
+	 * Busca um objeto pelo seu CODE.
+	 * 
+	 * @param id Code do objeto.
+	 * @return Objeto encontrado.
+	 * @throws Exception
+	 */
+	@RequestMapping(value = "/code/{code}", params = { "fieldsToForceLazy" }, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public User findCode(@PathVariable(value = "code") String code, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) throws Exception {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		return super.findCode(code, fieldsToForceLazy);
+	}
+	
+	/**
+	 * Busca os objetos da classe com paginação.
+	 * 
+	 * @param page Número da página
+	 * @param size Tamanho da página
+	 * @return Página
+	 */
+	@RequestMapping(method = RequestMethod.GET, value = "/findAll", params = { "page", "size", "fieldsToForceLazy" })
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public PageUser findAll(@RequestParam("page") int page, @RequestParam("size") int size, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		Page<User> result = super.findAll(page, size, fieldsToForceLazy);
+		return (PageUser) this.createConcretePage(result.getContent(), new PageRequest(page, size), result.getTotalElements());
+	}
+	
+	/**
+	 * Busca os objetos da classe com paginação e com filtro por relacionamento
+	 * 
+	 * @param page Número da página
+	 * @param size Tamanho da página
+	 * @return Página
+	 */
+	@RequestMapping(method = RequestMethod.GET, value = "/findAllByRelationShip/{field}/{id}", params = { "page", "size", "fieldsToForceLazy" })
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public PageUser findAll(@PathVariable("field") String field, @PathVariable("id") String id, @RequestParam("page") int page, @RequestParam("size") int size, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		PageRequest pageRequest = new PageRequest(page, size);
+		BooleanBuilder builder = new BooleanBuilder();
+		this.addInstanceOfExpression(builder, this.getEntityPath());
+		this.addRelationShipExpression(field, id, builder, this.getEntityPath());	
+		Page<User> result = getService().findAll(builder, pageRequest, true, fieldsToForceLazy);
+		PageUser concretePage = (PageUser) this.createConcretePage(result.getContent(), pageRequest, result.getTotalElements());
+		return concretePage;
+	}
+	
+	/**
+	 * Busca os objetos da classe com paginação, ordenado e com filtro por relacionamento
+	 * 
+	 * @param page Número da página
+	 * @param size Tamanho da página
+	 * @param sort Campos para ordenação
+	 * @return Página
+	 */
+	@RequestMapping(method = RequestMethod.GET, value = "/findAllByRelationShip/{field}/{id}", params = { "page", "size", "sort", "fieldsToForceLazy" })
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public PageUser findAllByRelationShip(@PathVariable("field") String field, @PathVariable("id") String id, @RequestParam("page") int page, @RequestParam("size") int size,
+			@RequestParam("sort") String sort, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		PageRequest pageRequest = new PageRequest(page, size);
+		BooleanBuilder builder = new BooleanBuilder();
+		this.addInstanceOfExpression(builder, this.getEntityPath());
+		this.addRelationShipExpression(field, id, builder, this.getEntityPath());
+		Page<User> result = getService().findAll(builder, true, pageRequest, fieldsToForceLazy, this.convertToSortExpression(sort, getEntityPath()));
+		PageUser concretePage = (PageUser) this.createConcretePage(result.getContent(), pageRequest, result.getTotalElements());
+		return concretePage;
+	}
+	
+	/**
+	 * Busca os objetos da classe contido na lista de ID's.
+	 * 
+	 * @param ids Lista de ID's
+	 * @return Lista de objetos encontrados.
+	 */
+	@RequestMapping(method = RequestMethod.GET, value = "/findAll", params = { "fieldsToForceLazy" })
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public ListUser findAll(@RequestParam(required = true) List<String> ids, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		List<Long> newIds = new ArrayList<Long>();
+		for (String id : ids) {
+			Long castID = Long.valueOf(id);
+			newIds.add(castID);
+		}
+		List<User> result = getService().findAll(newIds,true, fieldsToForceLazy);
+		ListUser concreteList = (ListUser) this.createConcreteList(result);
+		return concreteList;
+	}
+	
+	
 	private Boolean existsUserByLoginName(String login) throws Exception {
 		User user = this.getUserByLogin(login);
 		if (user == null) {
@@ -114,6 +349,361 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 		}
 		
 		return false;		
+	}
+	
+	
+	/**
+	 * Busca os objetos da classe de acordo com o objeto filtro.
+	 * 
+	 * @param filter Objeto filtro
+	 * @param page   Número da página
+	 * @param size   Tamanho da página
+	 * @return Página
+	 * @throws Exception
+	 */
+	@RequestMapping(value = "/findWithFilter", params = { "page", "size","fieldsToForceLazy" }, method = RequestMethod.POST)
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public PageUser find(@RequestBody Filter filter, @RequestParam(value = "page", required = true) int page,
+			@RequestParam(value = "size", required = true) int size, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) throws Exception {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		PageRequest pageRequest = new PageRequest(page, size);
+		DefaultFilterBuilder builder = AnterosFilterDsl.getFilterBuilder();
+		String sort = builder.toSortSql("TBT",filter, getService().getSession(), getService().getResultClass());
+		String sql = builder.toSql("TBT",filter, getService().getSession(), getService().getResultClass());		
+		EntityCache entityCache = getService().getSession().getEntityCacheManager().getEntityCache(getService().getResultClass());
+		DescriptionField tenantId = entityCache.getTenantId();		
+		if (tenantId!=null) {
+			if (this.getService().getSession().getTenantId()==null) {
+				throw new SQLQueryException("Informe o Tenant ID para realizar consulta na entidade "+entityCache.getEntityClass().getName());
+			}
+			sql = sql + " AND TBT."+tenantId.getSimpleColumn().getColumnName()+"="+'"'+getService().getSession().getTenantId()+'"';
+		}
+
+		Page<User> result = getService().find("select TBT.* from " + getService().getTableName() + " TBT where " + sql
+				+ (StringUtils.isNotEmpty(sort) ? " ORDER BY " + sort : ""), builder.getParams(), pageRequest, true, fieldsToForceLazy);
+		PageUser concretePage = (PageUser) this.createConcretePage(result.getContent(), pageRequest, result.getTotalElements());
+		return concretePage;
+	}
+	
+	
+	/**
+	 * Busca os objetos da classe de acordo com o objeto filtro e o relacionamento
+	 * 
+	 * @param filter Objeto filtro
+	 * @param page   Número da página
+	 * @param size   Tamanho da página
+	 * @return Página
+	 * @throws Exception
+	 */
+	@RequestMapping(value = "/findWithFilterByRelationShip/{field}/{id}", params = { "page", "size","fieldsToForceLazy" }, method = RequestMethod.POST)
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public PageUser find(@PathVariable("field") String field, @PathVariable("id") String id,  @RequestBody Filter filter, @RequestParam(value = "page", required = true) int page,
+			@RequestParam(value = "size", required = true) int size, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) throws Exception {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		PageRequest pageRequest = new PageRequest(page, size);
+		DefaultFilterBuilder builder = AnterosFilterDsl.getFilterBuilder();
+		String sort = builder.toSortSql("TBT",filter, getService().getSession(), getService().getResultClass());
+		String sql = builder.toSql("TBT",filter, getService().getSession(), getService().getResultClass());		
+		EntityCache entityCache = getService().getSession().getEntityCacheManager().getEntityCache(getService().getResultClass());
+		DescriptionField tenantId = entityCache.getTenantId();		
+		if (tenantId!=null) {
+			if (this.getService().getSession().getTenantId()==null) {
+				throw new SQLQueryException("Informe o Tenant ID para realizar consulta na entidade "+entityCache.getEntityClass().getName());
+			}
+			sql = sql + " AND TBT."+tenantId.getSimpleColumn().getColumnName()+"="+'"'+getService().getSession().getTenantId()+'"';
+		}
+		
+		EntityCache[] entityCaches = getService().getSession().getEntityCacheManager().getEntitiesBySuperClassIncluding(this.getService().getResultClass());
+		
+		DescriptionField descriptionField = null;
+		for (EntityCache eCache : entityCaches) {
+			descriptionField = eCache.getDescriptionField(field);
+			if (descriptionField != null) {
+				break;
+			}
+		}
+		
+		if (descriptionField==null) {
+			throw new SQLQueryException("O campo "+field+" informado como relacionamento para o filtro não foi encontrado.");
+		}
+		
+		if (!descriptionField.isRelationShip()) {
+			throw new SQLQueryException("O campo "+field+" informado não é um relacionamento.");
+		}
+		
+		if (descriptionField.getField().getType() == String.class) {
+			sql = sql +" AND TBT."+descriptionField.getSimpleColumn().getColumnName() +" =  '"+id+"'";
+		} else {
+			sql = sql +" AND TBT."+descriptionField.getSimpleColumn().getColumnName() +" =  "+id;
+		}
+
+		Page<User> result = getService().find("select TBT.* from " + getService().getTableName() + " TBT where " + sql
+				+ (StringUtils.isNotEmpty(sort) ? " ORDER BY " + sort : ""), builder.getParams(), pageRequest, true, fieldsToForceLazy);
+		PageUser concretePage = (PageUser) this.createConcretePage(result.getContent(), pageRequest, result.getTotalElements());
+		return concretePage;
+	}
+
+	/**
+	 * Busca os objetos da classe de acordo com a string de filtro e os campos.
+	 * 
+	 * @param filter String filter
+	 * @param fields String fields
+	 * @param page   Número da página
+	 * @param size   Tamanho da página
+	 * @return Página
+	 * @throws Exception
+	 */
+	@RequestMapping(value = "/findMultipleFields", params = { "filter", "fields", "page", "size",
+			"sort","fieldsToForceLazy" }, method = RequestMethod.POST)
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public PageUser find(@RequestParam(value = "filter", required = true) String filter,
+			@RequestParam(value = "fields", required = true) String fields,
+			@RequestParam(value = "page", required = true) int page,
+			@RequestParam(value = "size", required = true) int size, @RequestParam(value = "sort") String sort,
+			@RequestParam("fieldsToForceLazy") String fieldsToForceLazy)
+			throws Exception {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		PageRequest pageRequest = new PageRequest(page, size);		
+		Page<User> result = new AnterosMultipleFieldsFilter<User>().filter(filter).fields(fields).session(getService().getSession()).readOnly(true)
+				.resultClass(getService().getResultClass()).fieldsSort(sort).page(pageRequest).fieldsToForceLazy(fieldsToForceLazy).buildAndGetPage();
+		PageUser concretePage = (PageUser) this.createConcretePage(result.getContent(), pageRequest, result.getTotalElements());
+		return concretePage;
+	}
+	
+	/**
+	 * Busca os objetos da classe de acordo com a string de filtro, campos e o relacionamento.
+	 * 
+	 * @param filter String filter
+	 * @param fields String fields
+	 * @param page   Número da página
+	 * @param size   Tamanho da página
+	 * @return Página
+	 * @throws Exception
+	 */
+	@RequestMapping(value = "/findMultipleFieldsByRelationShip/{field}/{id}", params = { "filter", "fields", "page", "size",
+			"sort","fieldsToForceLazy" }, method = RequestMethod.POST)
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public PageUser find(@PathVariable("field") String field, @PathVariable("id") String id, @RequestParam(value = "filter", required = true) String filter,
+			@RequestParam(value = "fields", required = true) String fields,
+			@RequestParam(value = "page", required = true) int page,
+			@RequestParam(value = "size", required = true) int size, @RequestParam(value = "sort") String sort,
+			@RequestParam("fieldsToForceLazy") String fieldsToForceLazy)
+			throws Exception {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		PageRequest pageRequest = new PageRequest(page, size);			
+		BooleanBuilder builder = new BooleanBuilder();
+		this.addInstanceOfExpression(builder, this.getEntityPath());	
+		addRelationShipExpression(field, id, builder, this.getEntityPath());					
+		Page<User> result = new AnterosMultipleFieldsFilter<User>(this.getEntityPath(),builder).filter(filter).fields(fields).session(getService().getSession()).readOnly(true)
+				.resultClass(getService().getResultClass()).fieldsSort(sort).page(pageRequest).fieldsToForceLazy(fieldsToForceLazy).buildAndGetPage();
+		PageUser concretePage = (PageUser) this.createConcretePage(result.getContent(), pageRequest, result.getTotalElements());
+		return concretePage;
+	}
+
+	/**
+	 * Queries nomeadas
+	 */
+
+	/**
+	 * Busca os objetos da classe usando uma consulta nomeada.
+	 * 
+	 * @param queryName Nome da consulta
+	 * @param page      Número da página
+	 * @param size      Tamanho da página
+	 * @return Página
+	 */
+	@RequestMapping(value = "/findByNamedQuery/{queryName}", params = { "page", "size", "fieldsToForceLazy" }, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public PageUser findByNamedQuery(@PathVariable("queryName") String queryName,
+			@RequestParam(value = "page", required = true) int page,
+			@RequestParam(value = "size", required = true) int size, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		PageRequest pageRequest = new PageRequest(page, size);
+		Page<User> result = getService().findByNamedQuery(queryName, pageRequest, true, fieldsToForceLazy);
+		PageUser concretePage = (PageUser) this.createConcretePage(result.getContent(), pageRequest, result.getTotalElements());
+		return concretePage;
+	}
+
+	/**
+	 * Busca os objetos da classe usando uma consulta nomeada e um filtro.
+	 * 
+	 * @param filter    Objeto filtro
+	 * @param queryName Nome da consulta
+	 * @param page      Número da página
+	 * @param size      Tamanho da página
+	 * @return Página
+	 */
+	@RequestMapping(value = "/findByNamedQueryWithFilter/{queryName}", params = { "page",
+			"size", "fieldsToForceLazy" }, method = RequestMethod.POST)
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public PageUser findByNamedQuery(@RequestBody Filter filter, @PathVariable("queryName") String queryName,
+			@RequestParam(value = "page", required = true) int page,
+			@RequestParam(value = "size", required = true) int size, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		PageRequest pageRequest = new PageRequest(page, size);
+		DefaultFilterBuilder builder = AnterosFilterDsl.getFilterBuilder();
+		Assert.notNull(queryName, "O nome da query não pode ser nulo.");
+		String query;
+		Page<User> result = null;
+		try {
+			String sort = builder.toSortSql("",filter, getService().getSession(), getService().getResultClass());
+			String sql = builder.toSql("",filter, getService().getSession(), getService().getResultClass());
+			query = getService().getNamedQuery(queryName).getQuery() + " WHERE " + sql
+					+ (StringUtils.isNotEmpty(sort) ? " ORDER BY " + sort : "") + sort;
+			result = getService().find(query, builder.getParams(), pageRequest, true, fieldsToForceLazy);
+		} catch (Exception e) {
+			throw new SQLSessionException("Não foi possível executar a query nomeada " + queryName, e);
+		}
+		PageUser concretePage = (PageUser) this.createConcretePage(result.getContent(), pageRequest, result.getTotalElements());
+		return concretePage;
+	}
+
+	/**
+	 * Busca os objetos da classe usando uma consulta nomeada de acordo com os
+	 * parâmetros.
+	 * 
+	 * @param queryName  Nome da consulta
+	 * @param page       Número da página
+	 * @param size       Tamanho da página
+	 * @param parameters Lista de parâmetros
+	 * @return Página
+	 */
+	@RequestMapping(value = "/findByNamedQueryWithParams/{queryName}", params = { "page", "size",
+			"parameters", "fieldsToForceLazy" }, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public PageUser findByNamedQuery(@PathVariable("queryName") String queryName,
+			@RequestParam(value = "page", required = true) int page,
+			@RequestParam(value = "size", required = true) int size,
+			@RequestParam(value = "parameters", required = true) List<String> parameters,
+			@RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		PageRequest pageRequest = new PageRequest(page, size);
+		Page<User> result = getService().findByNamedQuery(queryName, parameters, pageRequest, true, fieldsToForceLazy);
+		PageUser concretePage = (PageUser) this.createConcretePage(result.getContent(), pageRequest, result.getTotalElements());
+		return concretePage;
+	}
+
+	/**
+	 * Busca os objetos da classe usando uma consulta nomeada de acordo com os
+	 * parâmetros e filtro.
+	 * 
+	 * @param filter     Objeto filtro
+	 * @param queryName  Nome da consulta
+	 * @param page       Número da página
+	 * @param size       Tamanho da página
+	 * @param parameters Lista de parâmetros
+	 * @return Página
+	 */
+	@RequestMapping(value = "/findByNamedQueryWithParamsAndFilter/{queryName}", params = { "page", "size",
+			"parameters","fieldsToForceLazy" }, method = RequestMethod.POST)
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public PageUser findByNamedQuery(@RequestBody Filter filter, @PathVariable("queryName") String queryName,
+			@RequestParam(value = "page", required = true) int page,
+			@RequestParam(value = "size", required = true) int size,
+			@RequestParam(value = "parameters", required = true) List<String> parameters,
+			@RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		PageRequest pageRequest = new PageRequest(page, size);
+		Page<User> result = getService().findByNamedQuery(queryName, parameters, pageRequest, true, fieldsToForceLazy);
+		PageUser concretePage = (PageUser) this.createConcretePage(result.getContent(), pageRequest, result.getTotalElements());
+		return concretePage;
+	}
+
+	/**
+	 * Count
+	 */
+
+	/**
+	 * Retorna a quantidade de objetos da classe.
+	 * 
+	 * @return Número total de objetos
+	 */
+	@RequestMapping(value = "/count", method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public long count() {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		return super.count();
+	}
+
+	/**
+	 * Verifica a existência de um objeto com o ID.
+	 * 
+	 * @param id Id do objeto
+	 * @return Verdadeiro se existir.
+	 */
+	@RequestMapping(value = "/exists/{id}", method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public boolean exists(@PathVariable String id) {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		return super.exists(id);
+	}
+
+	/**
+	 * Verifica a existência dos objetos contidos na lista.
+	 * 
+	 * @param ids Lista de id's para verificar a existência.
+	 * @return Verdadeiro se existir algum id.
+	 */
+	@RequestMapping(value = "/exists", method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
+	public boolean exists(@RequestParam(required = true) List<String> ids) {
+		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
+		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+		}
+		return super.exists(ids);
 	}
 	
 
