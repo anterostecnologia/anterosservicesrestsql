@@ -108,7 +108,7 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	public User save(@RequestBody User object) throws Exception {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
 		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
+			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");
 		}
 		if (object.getId() == null && !this.existsUserByLoginName(object.getLogin())) {			
 			return super.save(object); 
@@ -215,9 +215,7 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
 	public User findOne(@PathVariable(value = "id") String id, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) throws Exception {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
+
 		return super.findOne(id, fieldsToForceLazy);
 	}
 	
@@ -234,9 +232,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
 	public User findCode(@PathVariable(value = "code") String code, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) throws Exception {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		return super.findCode(code, fieldsToForceLazy);
 	}
 	
@@ -253,9 +248,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
 	public PageUser findAll(@RequestParam("page") int page, @RequestParam("size") int size, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		Page<User> result = super.findAll(page, size, fieldsToForceLazy);
 		return (PageUser) this.createConcretePage(result.getContent(), new PageRequest(page, size), result.getTotalElements());
 	}
@@ -273,9 +265,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
 	public PageUser findAll(@PathVariable("field") String field, @PathVariable("id") String id, @RequestParam("page") int page, @RequestParam("size") int size, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		PageRequest pageRequest = new PageRequest(page, size);
 		BooleanBuilder builder = new BooleanBuilder();
 		this.addInstanceOfExpression(builder, this.getEntityPath());
@@ -300,9 +289,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	public PageUser findAllByRelationShip(@PathVariable("field") String field, @PathVariable("id") String id, @RequestParam("page") int page, @RequestParam("size") int size,
 			@RequestParam("sort") String sort, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		PageRequest pageRequest = new PageRequest(page, size);
 		BooleanBuilder builder = new BooleanBuilder();
 		this.addInstanceOfExpression(builder, this.getEntityPath());
@@ -324,9 +310,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
 	public ListUser findAll(@RequestParam(required = true) List<String> ids, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		List<Long> newIds = new ArrayList<Long>();
 		for (String id : ids) {
 			Long castID = Long.valueOf(id);
@@ -368,9 +351,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	public PageUser find(@RequestBody Filter filter, @RequestParam(value = "page", required = true) int page,
 			@RequestParam(value = "size", required = true) int size, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) throws Exception {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		PageRequest pageRequest = new PageRequest(page, size);
 		DefaultFilterBuilder builder = AnterosFilterDsl.getFilterBuilder();
 		String sort = builder.toSortSql("TBT",filter, getService().getSession(), getService().getResultClass());
@@ -407,9 +387,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	public PageUser find(@PathVariable("field") String field, @PathVariable("id") String id,  @RequestBody Filter filter, @RequestParam(value = "page", required = true) int page,
 			@RequestParam(value = "size", required = true) int size, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) throws Exception {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		PageRequest pageRequest = new PageRequest(page, size);
 		DefaultFilterBuilder builder = AnterosFilterDsl.getFilterBuilder();
 		String sort = builder.toSortSql("TBT",filter, getService().getSession(), getService().getResultClass());
@@ -475,10 +452,7 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 			@RequestParam("fieldsToForceLazy") String fieldsToForceLazy)
 			throws Exception {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
-		PageRequest pageRequest = new PageRequest(page, size);		
+		PageRequest pageRequest = new PageRequest(page, size);
 		Page<User> result = new AnterosMultipleFieldsFilter<User>().filter(filter).fields(fields).session(getService().getSession()).readOnly(true)
 				.resultClass(getService().getResultClass()).fieldsSort(sort).page(pageRequest).fieldsToForceLazy(fieldsToForceLazy).buildAndGetPage();
 		PageUser concretePage = (PageUser) this.createConcretePage(result.getContent(), pageRequest, result.getTotalElements());
@@ -507,10 +481,7 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 			@RequestParam("fieldsToForceLazy") String fieldsToForceLazy)
 			throws Exception {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
-		PageRequest pageRequest = new PageRequest(page, size);			
+		PageRequest pageRequest = new PageRequest(page, size);
 		BooleanBuilder builder = new BooleanBuilder();
 		this.addInstanceOfExpression(builder, this.getEntityPath());	
 		addRelationShipExpression(field, id, builder, this.getEntityPath());					
@@ -540,9 +511,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 			@RequestParam(value = "page", required = true) int page,
 			@RequestParam(value = "size", required = true) int size, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		PageRequest pageRequest = new PageRequest(page, size);
 		Page<User> result = getService().findByNamedQuery(queryName, pageRequest, true, fieldsToForceLazy);
 		PageUser concretePage = (PageUser) this.createConcretePage(result.getContent(), pageRequest, result.getTotalElements());
@@ -567,9 +535,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 			@RequestParam(value = "page", required = true) int page,
 			@RequestParam(value = "size", required = true) int size, @RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		PageRequest pageRequest = new PageRequest(page, size);
 		DefaultFilterBuilder builder = AnterosFilterDsl.getFilterBuilder();
 		Assert.notNull(queryName, "O nome da query não pode ser nulo.");
@@ -609,9 +574,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 			@RequestParam(value = "parameters", required = true) List<String> parameters,
 			@RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		PageRequest pageRequest = new PageRequest(page, size);
 		Page<User> result = getService().findByNamedQuery(queryName, parameters, pageRequest, true, fieldsToForceLazy);
 		PageUser concretePage = (PageUser) this.createConcretePage(result.getContent(), pageRequest, result.getTotalElements());
@@ -640,9 +602,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 			@RequestParam(value = "parameters", required = true) List<String> parameters,
 			@RequestParam("fieldsToForceLazy") String fieldsToForceLazy) {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		PageRequest pageRequest = new PageRequest(page, size);
 		Page<User> result = getService().findByNamedQuery(queryName, parameters, pageRequest, true, fieldsToForceLazy);
 		PageUser concretePage = (PageUser) this.createConcretePage(result.getContent(), pageRequest, result.getTotalElements());
@@ -664,9 +623,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
 	public long count() {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		return super.count();
 	}
 
@@ -682,9 +638,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
 	public boolean exists(@PathVariable String id) {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		return super.exists(id);
 	}
 
@@ -700,9 +653,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = true, transactionManager = "transactionManagerSQL")
 	public boolean exists(@RequestParam(required = true) List<String> ids) {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		return super.exists(ids);
 	}
 	
@@ -710,8 +660,8 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	/**
 	 * Busca um objeto pelo seu ID.
 	 * 
-	 * @param id
-	 *            Identificador do objeto.
+	 * @param login
+	 *            login
 	 * @return Objeto encontrado.
 	 * @throws Exception
 	 */
@@ -726,8 +676,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	/**
 	 * Busca um objeto pelo seu ID.
 	 * 
-	 * @param id
-	 *            Identificador do objeto.
 	 * @return Objeto encontrado.
 	 * @throws Exception
 	 */
