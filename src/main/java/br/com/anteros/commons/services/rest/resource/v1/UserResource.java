@@ -107,10 +107,7 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	@Override
 	public User save(@RequestBody User object) throws Exception {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");
-		}
-		if (object.getId() == null && !this.existsUserByLoginName(object.getLogin())) {			
+		if (object.getId() == null && !this.existsUserByLoginName(object.getLogin())) {
 			return super.save(object); 
 		}
 		User user = this.getUserByLogin(object.getLogin());
@@ -135,9 +132,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = false, transactionManager = "transactionManagerSQL")
 	public User removeById(@PathVariable(value = "id") String id) throws Exception {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		return super.removeById(id);
 	}
 	
@@ -156,9 +150,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = false, transactionManager = "transactionManagerSQL")
 	public void validateGroup(@RequestBody User object, Class<?>... groups) throws Exception {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		super.validateGroup(object, groups);
 	}
 	
@@ -177,9 +168,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = false, transactionManager = "transactionManagerSQL")
 	public void validate(@RequestBody User object) throws Exception {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		super.validate(object);
 	}
 	
@@ -196,9 +184,6 @@ public class UserResource extends AbstractSQLResourceRest<User, Long> {
 	@Transactional(rollbackFor = Throwable.class, propagation = Propagation.REQUIRED, readOnly = false, transactionManager = "transactionManagerSQL")
 	public Boolean removeAll(@RequestParam(required = true) List<String> ids) throws Exception {
 		AnterosSecurityUser loggedUser = AnterosSecurityUtil.getLoggedUser();
-		if (loggedUser==null || !loggedUser.getUsername().equals("admin")) {
-			throw new UserException("Somente o ADMINISTRADOR possuí acesso ao cadastro de usuários! ");	
-		}
 		return super.removeAll(ids);
 	}
 	

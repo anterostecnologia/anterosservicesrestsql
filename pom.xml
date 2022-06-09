@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>br.com.anteros</groupId>
   <artifactId>Anteros-Services-RestSQL</artifactId>
-  <version>1.0.85</version>
+  <version>1.0.86</version>
   <properties>
 		<java.versao>1.8</java.versao>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -361,72 +361,7 @@
 				</repository>
 			</repositories>
 		</profile>
-		<profile>
-			<id>bintray</id>
-			<build>
-				<pluginManagement>
-					<plugins>
-						<plugin>
-							<groupId>org.apache.maven.plugins</groupId>
-							<artifactId>maven-compiler-plugin</artifactId>
-							<version>3.1</version>
-							<configuration>
-								<target>${java.versao}</target>
-								<source>${java.versao}</source>
-							</configuration>
-						</plugin>
-						<plugin>
-							<groupId>org.apache.maven.plugins</groupId>
-							<artifactId>maven-source-plugin</artifactId>
-							<executions>
-								<execution>
-									<id>attach-sources</id>
-									<goals>
-										<goal>jar</goal>
-									</goals>
-								</execution>
-							</executions>
-						</plugin>
-						<plugin>
-							<groupId>org.apache.maven.plugins</groupId>
-							<artifactId>maven-javadoc-plugin</artifactId>
-							<executions>
-								<execution>
-									<id>attach-javadocs</id>
-									<goals>
-										<goal>jar</goal>
-									</goals>
 
-								</execution>
-							</executions>
-							<configuration>
-								<doclint>none</doclint>
-							</configuration>
-						</plugin>
-					</plugins>
-				</pluginManagement>
-			</build>
-
-			<distributionManagement>
-				<repository>
-					<id>bintray-REPO-deploy</id>
-					<url>https://api.bintray.com/maven/${bintray.subject}/${bintray.repo}/${bintray.package}/;publish=1;override=1</url>
-				</repository>
-			</distributionManagement>
-
-			<repositories>
-				<repository>
-					<id>bintray</id>
-					<url>http://dl.bintray.com/${bintray.subject}/${bintray.repo}</url>
-					<releases>
-						<enabled>true</enabled>
-					</releases>
-					<snapshots>
-						<enabled>false</enabled>
-					</snapshots>
-				</repository>
-			</repositories>
-		</profile>
 		<profile>
 			<id>local</id>
 			<build>
